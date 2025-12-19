@@ -27,6 +27,12 @@ return {
   keys = {
     -- Basic debugging keymaps, feel free to change to your liking!
     {
+      '<leader>nd',
+      function()
+        require('custom.plugins.nvim-dap-dotnet').attach_to_process()
+      end,
+    },
+    {
       '<F5>',
       function()
         require('dap').continue()
@@ -95,6 +101,7 @@ return {
       ensure_installed = {
         -- Update this to ensure that you have the debuggers for the langs you want
         'delve',
+        'netcoredbg',
       },
     }
 
@@ -121,20 +128,90 @@ return {
     }
 
     -- Change breakpoint icons
-    -- vim.api.nvim_set_hl(0, 'DapBreak', { fg = '#e51400' })
-    -- vim.api.nvim_set_hl(0, 'DapStop', { fg = '#ffcc00' })
-    -- local breakpoint_icons = vim.g.have_nerd_font
-    --     and { Breakpoint = '', BreakpointCondition = '', BreakpointRejected = '', LogPoint = '', Stopped = '' }
-    --   or { Breakpoint = '●', BreakpointCondition = '⊜', BreakpointRejected = '⊘', LogPoint = '◆', Stopped = '⭔' }
-    -- for type, icon in pairs(breakpoint_icons) do
-    --   local tp = 'Dap' .. type
-    --   local hl = (type == 'Stopped') and 'DapStop' or 'DapBreak'
-    --   vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
-    -- end
+    vim.api.nvim_set_hl(0, 'DapBreak', { fg = '#e51400' })
+    vim.api.nvim_set_hl(0, 'DapStop', { fg = '#ffcc00' })
+    local breakpoint_icons = vim.g.have_nerd_font
+        and { Breakpoint = '', BreakpointCondition = '', BreakpointRejected = '', LogPoint = '', Stopped = '' }
+      or { Breakpoint = '●', BreakpointCondition = '⊜', BreakpointRejected = '⊘', LogPoint = '◆', Stopped = '⭔' }
+    for type, icon in pairs(breakpoint_icons) do
+      local tp = 'Dap' .. type
+      local hl = (type == 'Stopped') and 'DapStop' or 'DapBreak'
+      vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
+    end
 
     dap.listeners.after.event_initialized['dapui_config'] = dapui.open
     dap.listeners.before.event_terminated['dapui_config'] = dapui.close
     dap.listeners.before.event_exited['dapui_config'] = dapui.close
+
+    -- c# config
+    -- local mason_path = vim.fn.stdpath 'data' .. '/mason/packages/netcoredbg/netcoredbg'
+    --
+    -- local netcoredbg_adapter = {
+    --   type = 'executable',
+    --   command = mason_path,
+    --   args = { '--interpreter=vscode' },
+    -- }
+    --
+    -- dap.adapters.netcoredbg = netcoredbg_adapter -- needed for normal debugging
+    -- dap.adapters.coreclr = netcoredbg_adapter -- needed for unit test debugging
+    --
+    -- dap.configurations.cs = {
+    --   {
+    --     type = 'coreclr',
+    --     name = 'Attach to process',
+    --     request = 'attach',
+    --     processId = function()
+    --       -- Telescope picker of running dotnet processes
+    --       local pickers = require 'telescope.pickers'
+    --       local finders = require 'telescope.finders'
+    --       local conf = require('telescope.config').values
+    --       local actions = require 'telescope.actions'
+    --       local action_state = require 'telescope.actions.state'
+    --
+    --       local lines = {}
+    --       for line in io.popen('ps -ef | grep dotnet'):lines() do
+    --         if not line:match 'grep' then
+    --           table.insert(lines, line)
+    --         end
+    --       end
+    --
+    --       local pid
+    --       pickers
+    --         .new({}, {
+    --           prompt_title = 'Select dotnet process to attach',
+    --           finder = finders.new_table { results = lines },
+    --           sorter = conf.generic_sorter {},
+    --           attach_mappings = function(prompt_bufnr, map)
+    --             actions.select_default:replace(function()
+    --               actions.close(prompt_bufnr)
+    --               local selection = action_state.get_selected_entry().value
+    --               pid = tonumber(selection:match '(%d+)%s+dotnet')
+    --             end)
+    --             return true
+    --           end,
+    --         })
+    --         :find()
+    --
+    --       return pid
+    --     end,
+    --   },
+    -- }
+
+    require('dap-cs').setup {
+      dap_configurations = {
+        {
+          type = 'coreclr',
+          name = 'Attach remote',
+          mode = 'remote',
+          request = 'attach',
+        },
+      },
+      netcoredbg = {
+        -- the path to the executable netcoredbg which will be used for debugging.
+        -- by default, this is the "netcoredbg" executable on your PATH.
+        path = 'netcoredbg',
+      },
+    }
 
     -- Install golang specific config
     require('dap-go').setup {

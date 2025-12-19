@@ -207,6 +207,105 @@ require('lazy').setup({
     },
   },
 
+  {
+    'nvim-neotest/neotest',
+    lazy = true,
+    event = 'VeryLazy',
+    dependencies = {
+      'uga-rosa/utf8.nvim',
+      'nvim-neotest/nvim-nio',
+      'nvim-lua/plenary.nvim',
+      'antoinemadec/FixCursorHold.nvim',
+      'nvim-treesitter/nvim-treesitter',
+      -- FIXME: return to original repo after PR is merged
+      -- "marilari88/neotest-vitest",
+      'JarmoCluyse/neotest-vitest',
+
+      'arthur944/neotest-bun',
+      'Issafalcon/neotest-dotnet',
+      'fredrikaverpil/neotest-golang',
+    },
+    config = function()
+      require('neotest').setup {
+        adapters = {
+          require 'neotest-vitest' {
+            -- vitestCommand = "npx vitest run",
+          },
+          require 'neotest-bun'(),
+
+          require 'neotest-dotnet' {
+            dap = {
+              args = { justMyCode = false },
+              adapter_name = 'coreclr',
+            },
+            discovery_root = 'solution', -- or "solution (.sln)" or "project (.csproj)"
+          },
+          require 'neotest-golang' {
+            runner = 'gotestsum',
+          },
+        },
+      }
+    end,
+    keys = {
+       {
+      "<leader>n",
+      group = "🧪 Test",
+      nowait = true,
+      remap = false,
+  },
+  {
+      "<leader>nr",
+      "<cmd>lua require('neotest').run.run()<cr>",
+      desc = "Run nearest test",
+  },
+  {
+      "<leader>nf",
+      "<cmd>lua require('neotest').run.run(vim.fn.expand('%'))<cr>",
+      desc = "Run current file",
+  },
+  {
+      "<leader>na",
+      "<cmd>lua require('neotest').run.run({ suite = true })<cr>",
+      desc = "Run all tests",
+  },
+  {
+      "<leader>nd",
+      "<cmd>lua require('neotest').run.run({strategy = 'dap'})<cr>",
+      desc = "Debug nearest test",
+  },
+  {
+      "<leader>ns",
+      "<cmd>lua require('neotest').run.stop()<cr>",
+      desc = "Stop test",
+  },
+  {
+      "<leader>nn",
+      "<cmd>lua require('neotest').run.attach()<cr>",
+      desc = "Attach to nearest test",
+  },
+  {
+      "<leader>no",
+      "<cmd>lua require('neotest').output.open()<cr>",
+      desc = "Show test output",
+  },
+  {
+      "<leader>np",
+      "<cmd>lua require('neotest').output_panel.toggle()<cr>",
+      desc = "Toggle output panel",
+  },
+  {
+      "<leader>nv",
+      "<cmd>lua require('neotest').summary.toggle()<cr>",
+      desc = "Toggle summary",
+  },
+  {
+      "<leader>nc",
+      "<cmd>lua require('neotest').run.run({ suite = true, env = { CI = true } })<cr>",
+      desc = "Run all tests with CI",
+  },
+    },
+  },
+
   -- See `:help gitsigns` to understand what the configuration keys do
   { -- Adds git related signs to the gutter, as well as utilities for managing changes
     'lewis6991/gitsigns.nvim',
@@ -260,6 +359,10 @@ require('lazy').setup({
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      {
+        'aaronhallaert/advanced-git-search.nvim',
+        cmd = { 'AdvancedGitSearch' },
+      },
     },
     config = function()
       -- [[ Configure Telescope ]]
@@ -284,6 +387,7 @@ require('lazy').setup({
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
+      pcall(require('telescope').load_extension, 'advanced_git_search')
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
@@ -323,6 +427,38 @@ require('lazy').setup({
     end,
   },
 
+  -- C#
+  {
+    'seblyng/roslyn.nvim',
+    ---@module 'roslyn.config'
+    ---@type RoslynNvimConfig
+    opts = {
+      -- your configuration comes here; leave empty for default settings
+    },
+  },
+  { 'nicholasmata/nvim-dap-cs', dependencies = { 'mfussenegger/nvim-dap' } },
+
+  {
+    'folke/zen-mode.nvim',
+    opts = {
+      -- your configuration comes here
+      -- or leave it empty to use the default settings
+      -- refer to the configuration section below
+    },
+
+    keys = {
+      {
+        '<leader>zm',
+        function()
+          require('zen-mode').toggle {
+            window = { width = 0.5 },
+          }
+        end,
+        desc = 'Avante Chat (Copilot)',
+      },
+    },
+  },
+
   -- LSP Plugins
   {
     -- `lazydev` configures Lua LSP for your Neovim config, runtime and plugins
@@ -343,7 +479,15 @@ require('lazy').setup({
       -- Automatically install LSPs and related tools to stdpath for Neovim
       -- Mason must be loaded before its dependents so we need to set it up here.
       -- NOTE: `opts = {}` is the same as calling `require('mason').setup({})`
-      { 'mason-org/mason.nvim', opts = {} },
+      {
+        'mason-org/mason.nvim',
+        opts = {
+          registries = {
+            'github:mason-org/mason-registry',
+            'github:Crashdummyy/mason-registry',
+          },
+        },
+      },
       'mason-org/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
@@ -542,7 +686,7 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
+        ts_ls = {},
         --
 
         lua_ls = {
@@ -604,32 +748,6 @@ require('lazy').setup({
       'stevearc/dressing.nvim', -- optional for vim.ui.select
     },
     config = true,
-  },
-  {
-    'ray-x/go.nvim',
-    dependencies = { -- optional packages
-      'ray-x/guihua.lua',
-      'neovim/nvim-lspconfig',
-      'nvim-treesitter/nvim-treesitter',
-    },
-    opts = {
-      -- lsp_keymaps = false,
-      -- other options
-    },
-    -- config = function(lp, opts)
-    --   require('go').setup(opts)
-    --   local format_sync_grp = vim.api.nvim_create_augroup('GoFormat', {})
-    --   vim.api.nvim_create_autocmd('BufWritePre', {
-    --     pattern = '*.go',
-    --     callback = function()
-    --       require('go.format').goimports()
-    --     end,
-    --     group = format_sync_grp,
-    --   })
-    -- end,
-    event = { 'CmdlineEnter' },
-    ft = { 'go', 'gomod' },
-    build = ':lua require("go.install").update_all_sync()', -- if you need to install/update all binaries
   },
   {
     'stevearc/oil.nvim',
@@ -825,25 +943,41 @@ require('lazy').setup({
     },
   },
 
-  { -- You can easily change to a different colorscheme.
-    -- Change the name of the colorscheme plugin below, and then
-    -- change the command in the config to whatever the name of that colorscheme is.
-    --
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
-    priority = 1000, -- Make sure to load this before all the other start plugins.
+  -- { -- You can easily change to a different colorscheme.
+  --   -- Change the name of the colorscheme plugin below, and then
+  --   -- change the command in the config to whatever the name of that colorscheme is.
+  --   --
+  --   -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
+  --   'folke/tokyonight.nvim',
+  --   priority = 1000, -- Make sure to load this before all the other start plugins.
+  --   config = function()
+  --     ---@diagnostic disable-next-line: missing-fields
+  --     require('tokyonight').setup {
+  --       styles = {
+  --         -- comments = { italic = false }, -- Disable italics in comments
+  --       },
+  --     }
+  --
+  --     -- Load the colorscheme here.
+  --     -- Like many other themes, this one has different styles, and you could load
+  --     -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
+  --     vim.cmd.colorscheme 'tokyonight-storm'
+  --   end,
+  -- },
+
+  {
+    'neanias/everforest-nvim',
+    -- Optional; default configuration will be used if setup isn't called.
     config = function()
-      ---@diagnostic disable-next-line: missing-fields
-      require('tokyonight').setup {
-        styles = {
-          comments = { italic = false }, -- Disable italics in comments
-        },
+      require('everforest').setup {
+        background = 'medium',
+        transparent_background_level = 0,
+        italics = true,
+        disable_italic_comments = false,
+        inlay_hints_background = 'dimmed',
       }
 
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+      vim.cmd.colorscheme 'everforest'
     end,
   },
   {
@@ -858,9 +992,14 @@ require('lazy').setup({
       'DBUIAddConnection',
       'DBUIFindBuffer',
     },
+    keys = {
+      { '<leader>du', '<cmd>DBUIToggle<cr>', desc = 'Avante Chat (Copilot)' },
+    },
+
     init = function()
       -- Your DBUI configuration
       vim.g.db_ui_use_nerd_fonts = 1
+      vim.g.db_ui_winwidth = 80
     end,
   },
 
@@ -904,22 +1043,17 @@ require('lazy').setup({
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
+    branch = 'master',
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
-    -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
-      -- Autoinstall languages that are not installed
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'typescript', 'go', 'jsdoc' },
       auto_install = true,
       highlight = {
         enable = true,
-        -- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
-        --  If you are experiencing weird indenting issues, add the language to
-        --  the list of additional_vim_regex_highlighting and disabled languages for indent.
         additional_vim_regex_highlighting = { 'ruby' },
       },
       indent = { enable = true, disable = { 'ruby' } },
     },
-    -- There are additional nvim-treesitter modules that you can use to interact
     -- with nvim-treesitter. You should go explore a few and see what interests you:
     --
     --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
