@@ -228,21 +228,20 @@ require('lazy').setup({
     config = function()
       require('neotest').setup {
         adapters = {
-          require 'neotest-vitest' {
+          require('neotest-vitest') {
             -- vitestCommand = "npx vitest run",
           },
-          require 'neotest-bun'(),
-
-          require 'neotest-dotnet' {
+          require('neotest-bun')(),
+          require('neotest-dotnet') {
             dap = {
               args = { justMyCode = false },
               adapter_name = 'coreclr',
             },
             discovery_root = 'solution', -- or "solution (.sln)" or "project (.csproj)"
           },
-          require 'neotest-golang' {
-            runner = 'gotestsum',
-          },
+          require('neotest-golang')({
+            log_level = vim.log.levels.DEBUG,
+          }),
         },
       }
     end,
